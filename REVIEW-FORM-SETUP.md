@@ -12,7 +12,7 @@ GitHub Pages hosts the entry page. The form service sends each reviewer 15 items
 
 ## Publish the entry page
 
-Replace `RATINGS_SERVICE_ORIGIN` in `docs/Ablation_Rater_A.html` with the dedicated HTTPS origin. In Settings → Pages for `Suyogadk1/Review-form`, select Deploy from a branch and choose `main` with `/docs` as the source. Share the published page URL followed by `#` and the access key. Anyone with the full link can open it without a GitHub account. Rotating the access key invalidates the old link and sessions.
+Replace `RATINGS_SERVICE_ORIGIN` in `index.html` with the dedicated HTTPS origin. In Settings → Pages for `Suyogadk1/Review-form`, select Deploy from a branch and choose `main` with `/(root)` as the source. Share the published page URL followed by `#` and the access key. Anyone with the full link can open it without a GitHub account. Rotating the access key invalidates the old link and sessions.
 
 ## Use the submissions
 

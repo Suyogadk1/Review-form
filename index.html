@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>MindCare blinded response ratings</title>
+<h1>MindCare blinded response ratings</h1>
+<p>Reviewers receive 15 responses to rate.</p>
+<p id="status" role="status">Checking whether the form is ready…</p>
+<script>
+  const ratingsOrigin = 'RATINGS_SERVICE_ORIGIN';
+  const accessKey = location.hash.slice(1);
+  if (!ratingsOrigin.startsWith('https://')) {
+    document.querySelector('#status').textContent = 'The form is being set up and is not accepting submissions yet.';
+  } else if (!/^[a-f0-9]{64}$/.test(accessKey)) {
+    document.querySelector('#status').textContent = 'Open the full reviewer link you received.';
+  } else {
+    const target = new URL('/', ratingsOrigin);
+    target.hash = accessKey;
+    location.replace(target);
+  }
+</script>
+</html>

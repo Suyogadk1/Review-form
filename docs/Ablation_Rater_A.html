@@ -1,22 +1,10 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>MindCare blinded response ratings</title>
-<h1>MindCare blinded response ratings</h1>
-<p id="status" role="status">Opening the rating form…</p>
+<p><a href="../">Open the rating form</a></p>
 <script>
-  const ratingsOrigin = 'RATINGS_SERVICE_ORIGIN';
-  const accessKey = location.hash.slice(1);
-  if (!/^[a-f0-9]{64}$/.test(accessKey)) {
-    document.querySelector('#status').textContent = 'Open the full rating link you received.';
-  } else if (!ratingsOrigin.startsWith('https://')) {
-    document.querySelector('#status').textContent = 'The ratings service is not configured.';
-  } else {
-    const target = new URL('/', ratingsOrigin);
-    target.hash = accessKey;
-    location.replace(target);
-  }
+  location.replace('../' + location.hash);
 </script>
 </html>
