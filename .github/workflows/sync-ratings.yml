@@ -1,0 +1,91 @@
+name: Sync completed review forms
+
+on:
+  schedule:
+    - cron: '2-59/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: review-form-submissions
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      RATINGS_ORIGIN: https://mindcare-review-form.cylinderroute-agency.workers.dev
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Sync completed submissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          oidc="$(
+            curl -fsS --max-time 15 -G "$ACTIONS_ID_TOKEN_REQUEST_URL" \
+              -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              --data-urlencode "audience=$RATINGS_ORIGIN" | jq -er '.value'
+          )"
+          echo "::add-mask::$oidc"
+          curl -fsS --max-time 30 -H "Authorization: Bearer $oidc" \
+            "$RATINGS_ORIGIN/sync" > "$work/submissions.json"
+          if jq -e '. == []' "$work/submissions.json" >/dev/null; then
+            echo 'No pending submissions.'
+            exit 0
+          fi
+
+          authenticated_git() {
+            git -c credential.helper= -c 'credential.helper=!gh auth git-credential' "$@"
+          }
+          authenticated_git clone --quiet --depth 1 --branch main \
+            "https://github.com/$GITHUB_REPOSITORY.git" "$work/repo"
+
+          python3 - "$work" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          work = Path(sys.argv[1])
+          rows = json.loads((work / 'submissions.json').read_text())
+          if not isinstance(rows, list) or len(rows) > 50:
+              raise ValueError('Unexpected submissions payload.')
+          receipts = []
+          for row in rows:
+              digest = row['dataset_sha256']
+              receipt = row['reviewer_assignment_id']
+              if not all(isinstance(value, str) and re.fullmatch(r'[a-f0-9]{64}', value)
+                         for value in (digest, receipt)):
+                  raise ValueError('Invalid submission path.')
+              if row['assignment'] != 'A' or row['publication_consent'] is not True or len(row['labels']) != 15:
+                  raise ValueError('Invalid submission.')
+              folder = work / 'repo' / 'evaluation-submissions' / 'packet-a' / digest
+              folder.mkdir(parents=True, exist_ok=True)
+              target = folder / (receipt + '.json')
+              document = json.dumps(row, ensure_ascii=False, indent=2) + '\n'
+              if target.exists() and target.read_text() != document:
+                  raise ValueError('A different submission already uses this receipt.')
+              target.write_text(document)
+              receipts.append(receipt)
+          (work / 'receipts.json').write_text(json.dumps(receipts))
+          PY
+
+          git -C "$work/repo" add -- evaluation-submissions
+          if ! git -C "$work/repo" diff --cached --quiet; then
+            git -C "$work/repo" -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit --quiet -m 'Record completed review forms'
+            if ! authenticated_git -C "$work/repo" push origin HEAD:main; then
+              authenticated_git -C "$work/repo" pull --rebase origin main
+              authenticated_git -C "$work/repo" push origin HEAD:main
+            fi
+          fi
+          curl -fsS --max-time 20 -X POST -H "Authorization: Bearer $oidc" \
+            -H 'Content-Type: application/json' --data-binary "@$work/receipts.json" "$RATINGS_ORIGIN/sync"
+          echo 'Completed submission sync.'

@@ -1,21 +1,17 @@
 # Online packet A
 
-GitHub Pages hosts the entry page. The form service sends each reviewer 15 items. Four are shared across all forms, with two high-risk and two medium-risk items. It draws six more high-risk and five more medium-risk items from a curated pool and reserves each combination on disk so it can be issued only once. Reviewers keep their assigned form in the same browser while their session remains valid.
+The form starts at [GitHub Pages](https://suyogadk1.github.io/Review-form/). Share the URL with the reviewer access key after the hash character. Each browser session receives 15 items, including two shared high-risk items and two shared medium-risk items. The other 11 come from a curated pool, with a different combination for every new session.
 
-## Run the form service
+## Completed submissions
 
-1. Use Node.js 22 or later. Provision a dedicated HTTPS origin and a persistent disk. Keep the generated `Ablation_Rater_A.html` and its matching `ablation-online-selection.json` on the service's private filesystem. For each new packet, curate a matching selection containing its `dataset_sha256` and four lists of response IDs named `shared_high`, `shared_medium`, `high`, and `medium`. The shared lists require two items each and the other pools require at least seven high-risk and six medium-risk items.
-2. Set `RATINGS_FOLDER` to the private data directory and `RATINGS_ORIGIN` to the browser-facing origin. Set `RATINGS_ACCESS_KEY` to the output of `openssl rand -hex 32`.
-3. Set `RATINGS_GITHUB_TOKEN` in the host's secret settings using a repository-scoped token with Contents write permission on `Suyogadk1/Review-form`. The service writes to `main` unless `RATINGS_GITHUB_BRANCH` specifies another writable branch.
-4. Run `node tools/evaluation/serve_ablation_packet.mjs` from the repository root. It listens on `127.0.0.1:8091` by default. Set `PORT` and `RATINGS_HOST` for your hosting platform.
-5. Test with the backend origin followed by `/#` and the access key. For a local-only test, use an HTTP origin with no GitHub token.
+The Cloudflare Worker stores accepted submissions in D1. The **Sync completed review forms** GitHub workflow uses a short-lived OpenID Connect credential to retrieve pending submissions and commits them to `main` under `evaluation-submissions/packet-a/<dataset-sha256>/`. It runs every five minutes and can also be run manually. Timing depends on GitHub's schedule. The workflow acknowledges records only after their files are present in the repository. Exact retries reuse the same receipt.
 
-## Publish the entry page
+Each JSON file includes a reviewer pseudonym, assignment ID, dataset checksum, and 15 response IDs, labels, and rationales. The form asks reviewers to agree to public publication and to leave out identifying details and quotes. Join submissions on `response_id` for per-item analysis. The original full-packet A/B analyzer requires complete coverage by each rater.
 
-Replace `RATINGS_SERVICE_ORIGIN` in `index.html` with the dedicated HTTPS origin. In Settings → Pages for `Suyogadk1/Review-form`, select Deploy from a branch and choose `main` with `/(root)` as the source. Share the published page URL followed by `#` and the access key. Anyone with the full link can open it without a GitHub account. Rotating the access key invalidates the old link and sessions.
+## Maintain the deployment
 
-## Use the submissions
-
-Reviewers consent to publishing their pseudonym, labels, and one-sentence reasons before submitting. A successful submission creates a JSON file under `evaluation-submissions/packet-a/<dataset-sha256>/` on the configured GitHub branch. Exact retries reuse the same file. The persistent disk also keeps the reserved assignments and a local copy of each submission for retrying failed writes.
-
-Each file includes the dataset checksum, reviewer assignment ID and exactly 15 response IDs, labels and rationales. Join files on `response_id` to analyze ratings for the same item. The full-packet A/B analyzer expects complete coverage from each of two raters, so these partial submissions cannot be passed to that analyzer unchanged.
+- GitHub Pages uses the `main` branch and the repository root.
+- The Worker at `mindcare-review-form.cylinderroute-agency.workers.dev` uses `tools/evaluation/worker/worker.mjs`, a private `packet.mjs` module, a D1 binding named `DB`, and a secret named `ACCESS_KEY`.
+- Apply `tools/evaluation/worker/schema.sql` when provisioning a new database.
+- Build the private module with `python3 tools/evaluation/worker/build-packet-module.py PRIVATE_PACKET_FOLDER PRIVATE_OUTPUT/packet.mjs`. The input folder needs the generated `Ablation_Rater_A.html` and its matching `ablation-online-selection.json`. That JSON has the dataset checksum and four lists of response IDs titled `shared_high`, `shared_medium`, `high`, and `medium`. Keep the input files and generated module out of GitHub.
+- Update the workflow's Worker URL and the URL in `index.html` together if the Worker moves.

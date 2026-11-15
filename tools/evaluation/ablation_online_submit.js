@@ -68,9 +68,13 @@ submitButton.addEventListener('click', async () => {
     if (result.status === 409) throw new Error('This form already has a completed submission.');
     if (!result.ok) throw new Error('Your submission could not be saved. Please try again.');
     await result.json();
-    submissionStatus.textContent = publicSubmission
-      ? 'Your completed ratings were saved to GitHub.'
-      : 'Your completed ratings were saved on this test server.';
+    if (typeof submissionQueued !== 'undefined' && submissionQueued) {
+      submissionStatus.textContent = 'Your ratings were received and will sync to GitHub automatically.';
+    } else {
+      submissionStatus.textContent = publicSubmission
+        ? 'Your completed ratings were saved to GitHub.'
+        : 'Your completed ratings were saved on this test server.';
+    }
   } catch (error) {
     submissionStatus.textContent = error.message;
   } finally {
