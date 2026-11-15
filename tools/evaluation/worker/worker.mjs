@@ -1,6 +1,7 @@
 import { template, rows, selection, browserScript } from './packet.mjs';
 
 const repository = 'Suyogadk1/Review-form';
+const contentsUrl = `https://api.github.com/repos/${repository}/contents/evaluation-submissions/packet-a`;
 const workflowRef = repository + '/.github/workflows/sync-ratings.yml@refs/heads/main';
 const issuer = 'https://token.actions.githubusercontent.com';
 const encoder = new TextEncoder();
@@ -136,7 +137,8 @@ function validate(input, assignment) {
   };
 }
 
-async function submit(request, db, origin, assignment) {
+async function submit(request, env, origin, assignment, ctx) {
+  const { DB: db } = env;
   if (request.headers.get('Origin') !== origin || request.headers.get('Content-Type') !== 'application/json') {
     return response('Invalid submission origin.', 403);
   }
@@ -145,12 +147,54 @@ async function submit(request, db, origin, assignment) {
   const payload = JSON.stringify({ ...ratings, completed_at: new Date().toISOString() });
   const result = await db.prepare('INSERT OR IGNORE INTO submissions (id, payload) VALUES (?, ?)')
     .bind(assignment.id, payload).run();
+  let pending = { id: assignment.id, payload };
   if (result.meta.changes !== 1) {
-    const existing = await db.prepare('SELECT payload FROM submissions WHERE id = ?').bind(assignment.id).first();
+    const existing = await db.prepare('SELECT id, payload, synced FROM submissions WHERE id = ?').bind(assignment.id).first();
     const { completed_at, ...previous } = JSON.parse(existing.payload);
     if (JSON.stringify(previous) !== JSON.stringify(ratings)) return response('Form already submitted.', 409);
+    pending = existing.synced ? null : existing;
+  }
+  if (pending && env.GITHUB_REVIEW_TOKEN) {
+    ctx.waitUntil(publishSubmission(env, pending).catch(reportPublishFailure));
   }
   return json({ receipt: assignment.id });
+}
+
+function reportPublishFailure(error) {
+  console.error(JSON.stringify({ event: 'github_submission_sync_failed', error: error.message }));
+}
+
+async function publishSubmission(env, { id, payload }) {
+  const submission = JSON.parse(payload);
+  const url = `${contentsUrl}/${submission.dataset_sha256}/${id}.json`;
+  const headers = {
+    Authorization: `Bearer ${env.GITHUB_REVIEW_TOKEN}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2026-03-10',
+    'User-Agent': 'MindCare-Review-Form',
+  };
+  const bytes = encoder.encode(JSON.stringify(submission, null, 2) + '\n');
+  const content = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''));
+  const result = await fetch(url, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ branch: 'main', message: 'Record completed review form', content }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (result.status !== 201) {
+    if (result.status !== 409 && result.status !== 422) {
+      throw new Error(`GitHub returned HTTP ${result.status}`);
+    }
+    const current = await fetch(url + '?ref=main', { headers, signal: AbortSignal.timeout(10000) });
+    if (!current.ok) throw new Error(`GitHub file verification returned HTTP ${current.status}`);
+    const file = await current.json();
+    const existing = file.encoding === 'base64' &&
+      decoder.decode(Uint8Array.from(atob(file.content), char => char.charCodeAt(0)));
+    if (!existing || JSON.stringify(JSON.parse(existing)) !== payload) {
+      throw new Error('GitHub has different content for the submission');
+    }
+  }
+  await env.DB.prepare('UPDATE submissions SET synced = 1 WHERE id = ?').bind(id).run();
 }
 
 function decodeBase64Url(value) {
@@ -201,7 +245,7 @@ async function sync(request, db, origin) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const { pathname, origin } = new URL(request.url);
     const method = request.method;
     try {
@@ -212,11 +256,16 @@ export default {
       if (!assignment) return response('Open the full reviewer link you received.', 401);
       if (pathname === '/packet' && method === 'GET') return response(form(assignment), 200, 'text/html; charset=utf-8');
       if (pathname === '/submit.js' && method === 'GET') return response(browserScript, 200, 'text/javascript; charset=utf-8');
-      if (pathname === '/ratings' && method === 'POST') return await submit(request, env.DB, origin, assignment);
+      if (pathname === '/ratings' && method === 'POST') return await submit(request, env, origin, assignment, ctx);
       return response('Page not found.', 404);
     } catch {
       console.error(JSON.stringify({ event: 'review_request_failed', pathname, method }));
       return response('The review service is temporarily unavailable. Try again.', 503);
     }
+  },
+  async scheduled(_event, env) {
+    if (!env.GITHUB_REVIEW_TOKEN) return;
+    const { results } = await env.DB.prepare('SELECT id, payload FROM submissions WHERE synced = 0 ORDER BY id LIMIT 20').all();
+    for (const pending of results) await publishSubmission(env, pending).catch(reportPublishFailure);
   },
 };

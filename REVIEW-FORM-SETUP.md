@@ -4,7 +4,11 @@ The form starts at [GitHub Pages](https://suyogadk1.github.io/Review-form/). Sha
 
 ## Completed submissions
 
-The Cloudflare Worker stores accepted submissions in D1. The **Sync completed review forms** GitHub workflow uses a short-lived OpenID Connect credential to retrieve pending submissions and commits them to `main` under `evaluation-submissions/packet-a/<dataset-sha256>/`. It runs every five minutes and can also be run manually. Timing depends on GitHub's schedule. The workflow acknowledges records only after their files are present in the repository. Exact retries reuse the same receipt.
+The Cloudflare Worker stores accepted submissions in D1, then starts a GitHub write as soon as the reviewer submits. Cloudflare retries pending writes every five minutes. Each form is saved under `evaluation-submissions/packet-a/<dataset-sha256>/` on `main`. A retry confirms any existing copy before acknowledging delivery.
+
+To enable direct writes, sign in to GitHub as `Suyogadk1` and create a fine-grained personal access token for only `Review-form` with **Contents: Read and write**. In Cloudflare, open the `mindcare-review-form` Worker and add the token as a secret named `GITHUB_REVIEW_TOKEN` under **Settings → Variables and Secrets**. Deploy the secret. Pending submissions will be picked up by the next retry run.
+
+The **Sync completed review forms** GitHub workflow remains available for manual sync. It uses a short-lived OpenID Connect credential and acknowledges records only after their files are present in the repository.
 
 Each JSON file includes a reviewer pseudonym, assignment ID, dataset checksum, and 15 response IDs, labels, and rationales. The form asks reviewers to agree to public publication and to leave out identifying details and quotes. Join submissions on `response_id` for per-item analysis. The original full-packet A/B analyzer requires complete coverage by each rater.
 
