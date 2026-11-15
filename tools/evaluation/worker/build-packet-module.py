@@ -26,9 +26,16 @@ ids = shared_high + shared_medium + high + medium
 private_rows = [row for row in rows if row['response_id'] in set(ids)]
 if len(shared_high) != 2 or len(shared_medium) != 2 or len(high) < 7 or len(medium) < 6 or len(ids) != len(set(ids)) or len(private_rows) != len(ids):
     raise SystemExit('Expected two shared items per risk level and valid additional pools.')
-browser_script = Path(__file__).resolve().parents[1] / 'ablation_online_submit.js'
+worker_folder = Path(__file__).resolve().parent
+browser_script = worker_folder.parent.parent / 'ablation_online_submit.js'
+if not browser_script.is_file():
+    browser_script = worker_folder.parent / 'ablation_online_submit.js'
+form = (worker_folder / 'review-form.html').read_text(encoding='utf8')
+styles = (worker_folder / 'review-form.css').read_text(encoding='utf8')
 module = {
-    'template': head + prefix + '/*ASSIGNED_ROWS*/[]' + suffix,
+    'template': form.replace('/* REVIEW_STYLES */', styles).replace(
+        '<!-- PACKET_SCRIPT -->', prefix + '/*ASSIGNED_ROWS*/[]' + suffix.split('</script>', 1)[0] + '</script>',
+    ),
     'rows': private_rows,
     'selection': selection,
     'browserScript': browser_script.read_text(encoding='utf8'),

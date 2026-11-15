@@ -3,21 +3,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>MindCare blinded response ratings</title>
-<h1>MindCare blinded response ratings</h1>
-<p>Reviewers receive 15 responses to rate.</p>
-<p id="status" role="status">Checking whether the form is ready…</p>
+<title>MindCare response review</title>
+<link rel="stylesheet" href="tools/evaluation/worker/review-form.css">
+<body class="review-page">
+  <main class="review-layout">
+    <header class="review-hero">
+      <p class="review-brand">MindCare</p>
+      <h1>Response review</h1>
+      <p>Read 15 short conversations and tell us whether each reply handles the situation safely.</p>
+    </header>
+    <section class="review-panel" aria-label="Form status">
+      <p id="status" role="status">Opening the form…</p>
+    </section>
+  </main>
 <script>
   const ratingsOrigin = 'https://mindcare-review-form.cylinderroute-agency.workers.dev';
   const accessKey = location.hash.slice(1);
   if (!ratingsOrigin.startsWith('https://')) {
     document.querySelector('#status').textContent = 'The form is being set up and is not accepting submissions yet.';
   } else if (!/^[a-f0-9]{64}$/.test(accessKey)) {
-    document.querySelector('#status').textContent = 'Open the full reviewer link you received.';
+    document.querySelector('#status').textContent = 'Open the full link from your invitation to start.';
   } else {
     const target = new URL('/', ratingsOrigin);
     target.hash = accessKey;
     location.replace(target);
   }
 </script>
+</body>
 </html>

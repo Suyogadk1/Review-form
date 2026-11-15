@@ -1,0 +1,210 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  color-scheme: light;
+  --review-ink: #211941;
+  --review-text: #514965;
+  --review-accent: #6039b6;
+  --review-accent-dark: #44258a;
+  --review-border: #ded6f1;
+  --review-white: #fff;
+  --review-mint: #e8f8f3;
+  --review-lavender: #f3edff;
+  --review-display: "Bricolage Grotesque", Georgia, serif;
+  --review-body: "DM Sans", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body.review-page {
+  margin: 0;
+  color: var(--review-ink);
+  font: 1rem/1.65 var(--review-body);
+  background: radial-gradient(ellipse at 100% 0, #e4f8f1, transparent 44rem),
+              radial-gradient(ellipse at 0 0, #eadefa, transparent 46rem), #f8f7fc;
+}
+
+.review-layout {
+  width: min(100% - 2rem, 54rem);
+  margin: 2rem auto 4rem;
+}
+
+.review-hero {
+  overflow: hidden;
+  padding: clamp(1.55rem, 5vw, 3.2rem);
+  border: 1px solid #5f44a6;
+  border-radius: 1.5rem;
+  color: #fff;
+  background: radial-gradient(ellipse at 100% 0, #7d59c8 0, #5839a2 38%, #30205e 83%);
+  box-shadow: 0 16px 32px -22px #2d165f;
+}
+
+.review-hero .review-brand {
+  margin: 0 0 1rem;
+  color: #a9f0dc;
+  font-size: .92rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.review-hero h1 {
+  margin: 0;
+  font: 800 clamp(2.4rem, 7vw, 4.3rem)/1.05 var(--review-display);
+  letter-spacing: -.04em;
+}
+
+.review-hero p:last-child {
+  max-width: 33rem;
+  margin: 1rem 0 0;
+  color: #f0eaff;
+  font-size: clamp(1rem, 2.4vw, 1.2rem);
+}
+
+.review-panel, #responses article, .review-submit {
+  min-width: 0;
+  margin-top: 1rem;
+  padding: clamp(1.15rem, 3.3vw, 1.8rem);
+  border: 1px solid var(--review-border);
+  border-radius: 1.2rem;
+  background: var(--review-white);
+  box-shadow: 0 4px 22px -20px #3d2068;
+}
+
+.review-panel h2, #responses h2, .review-submit h2 {
+  margin: 0 0 .65rem;
+  font: 700 clamp(1.25rem, 3vw, 1.65rem)/1.2 var(--review-display);
+}
+
+.review-panel p, .review-submit p { color: var(--review-text); }
+.review-panel p { margin: .5rem 0 1rem; }
+
+.review-rubric {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .7rem;
+  margin: 0;
+}
+
+.review-rubric div { padding: .8rem .9rem; border-radius: .75rem; background: var(--review-lavender); }
+.review-rubric div:first-child { background: var(--review-mint); }
+.review-rubric div:last-child { background: #fff3dc; }
+.review-rubric dt { margin-bottom: .2rem; font-weight: 800; }
+.review-rubric dd { margin: 0; color: var(--review-text); font-size: .92rem; line-height: 1.55; }
+
+.review-page label {
+  display: block;
+  margin-top: .8rem;
+  font-weight: 700;
+}
+
+.review-page [hidden] { display: none !important; }
+
+.review-page :is(input:not([type="checkbox"]), select, textarea) {
+  display: block;
+  max-width: 100%;
+  width: 100%;
+  margin-top: .25rem;
+  padding: .64rem .75rem;
+  border: 1px solid #bcb0d3;
+  border-radius: .62rem;
+  background: #fff;
+  color: var(--review-ink);
+  font: inherit;
+  font-weight: 500;
+}
+
+.review-page input#person { width: min(100%, 29rem); }
+.review-page select { width: min(100%, 18rem); }
+.review-page textarea { resize: vertical; min-height: 5rem; }
+.review-page input::placeholder, .review-page textarea::placeholder { color: #716683; }
+.review-page :focus-visible { outline: 3px solid #7750ce; outline-offset: 3px; }
+
+.review-page button {
+  min-height: 2.7rem;
+  padding: .57rem .95rem;
+  border: 1px solid #aa93d4;
+  border-radius: .65rem;
+  background: #f9f6ff;
+  color: var(--review-accent-dark);
+  font: 700 .94rem var(--review-body);
+  cursor: pointer;
+}
+
+.review-page button:hover { background: var(--review-lavender); }
+.review-page button:disabled { opacity: .65; cursor: wait; }
+
+.review-page summary {
+  color: var(--review-accent-dark);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.review-checkpoint { margin-top: 1.1rem; padding-top: .85rem; border-top: 1px solid var(--review-border); }
+.review-checkpoint-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.review-checkpoint #status:empty { display: none; }
+
+.review-progress {
+  position: sticky;
+  top: .55rem;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: .38rem .75rem;
+  margin-top: 1rem;
+  padding: .72rem 1rem;
+  border: 1px solid var(--review-border);
+  border-radius: .85rem;
+  background: var(--review-white);
+  box-shadow: 0 5px 18px -14px #2d165f;
+}
+
+.review-progress :is(h2, p) { margin: 0; font-size: .9rem; font-weight: 800; }
+.review-progress p { color: var(--review-accent-dark); }
+.review-progress progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: .43rem;
+  border: 0;
+  border-radius: 1rem;
+  background: #eee7f8;
+  color: var(--review-accent);
+  accent-color: var(--review-accent);
+}
+.review-progress progress::-webkit-progress-bar { border-radius: 1rem; background: #eee7f8; }
+.review-progress progress::-webkit-progress-value { border-radius: 1rem; background: var(--review-accent); }
+.review-progress progress::-moz-progress-bar { border-radius: 1rem; background: var(--review-accent); }
+
+#responses article { scroll-margin-top: 5rem; }
+#responses article[data-complete="true"] { border-color: #a2d2c5; }
+#responses article h2 { color: var(--review-accent-dark); }
+#responses article > details { margin-bottom: .72rem; }
+.review-exchange { margin: .65rem 0; padding: .72rem .85rem; border-radius: .7rem; background: #f4f0fb; }
+.review-exchange[data-reply] { background: #edf8f4; }
+.review-exchange h3 { margin: 0; font-size: .78rem; line-height: 1.5; text-transform: uppercase; letter-spacing: .055em; }
+.review-page pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: .24rem 0 0;
+  font: inherit;
+  font-weight: 400;
+}
+#responses :is(select, textarea) { scroll-margin-top: 5rem; }
+
+.review-submit .review-primary {
+  padding-inline: 1.3rem;
+  color: #fff;
+  background: var(--review-accent);
+  border-color: transparent;
+}
+.review-submit .review-primary:hover { background: var(--review-accent-dark); }
+.review-submit label { display: flex; align-items: flex-start; gap: .45rem; margin-bottom: .9rem; font-weight: 500; }
+.review-submit input[type="checkbox"] { flex: 0 0 auto; margin: .45em .25em 0 0; accent-color: var(--review-accent); }
+.review-submit p { margin-bottom: 0; }
+.review-submit p:empty { display: none; }
+
+@media (max-width: 42rem) {
+  .review-layout { margin-top: 1rem; width: min(100% - 1.25rem, 54rem); }
+  .review-rubric { grid-template-columns: 1fr; }
+  .review-rubric div { padding: .58rem .76rem; }
+}

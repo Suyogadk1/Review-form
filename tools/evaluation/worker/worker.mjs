@@ -91,8 +91,8 @@ async function enter(request, env) {
 
 function form(assignment) {
   const data = JSON.stringify(JSON.parse(assignment.ids).map(id => rowById.get(id))).replace(/</g, '\\u003c');
-  return template.replace('/*ASSIGNED_ROWS*/[]', () => data).replace('</html>',
-    `<script>const submissionRepository = ${JSON.stringify(repository)}; const submissionQueued = true;</script><script src="/submit.js"></script></html>`);
+  return template.replace('/*ASSIGNED_ROWS*/[]', () => data).replace('</body>',
+    `<script>const submissionRepository = ${JSON.stringify(repository)}; const submissionQueued = true;</script><script src="/submit.js"></script></body>`);
 }
 
 async function readJson(request) {

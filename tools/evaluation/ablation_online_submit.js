@@ -1,17 +1,73 @@
 const submitButton = document.createElement('button');
 submitButton.type = 'button';
-submitButton.textContent = 'Submit completed ratings';
+submitButton.textContent = 'Submit my ratings';
 
 const submissionStatus = document.createElement('p');
 submissionStatus.setAttribute('role', 'status');
-document.getElementById('responses').after(submitButton, submissionStatus);
+const responseList = document.getElementById('responses');
+const progressMeter = document.getElementById('review-progress');
+if (progressMeter) {
+  const section = document.createElement('section');
+  section.className = 'review-submit';
+  const title = document.createElement('h2');
+  title.textContent = 'Send your review';
+  title.id = 'send-your-review';
+  section.setAttribute('aria-labelledby', title.id);
+  submitButton.className = 'review-primary';
+  section.append(title, submitButton, submissionStatus);
+  responseList.after(section);
 
-const instructions = document.createElement('p');
-instructions.textContent = 'Rate all 15 responses, then select Submit completed ratings at the bottom of the page.';
-document.getElementById('responses').before(instructions);
+  const cards = Array.from(responseList.querySelectorAll('article'));
+  const fields = cards.map((card, index) => {
+    card.querySelector('h2').textContent = 'Response ' + (index + 1);
+    const context = card.querySelector('details');
+    if (data[index].history.length) context.querySelector('summary').textContent = 'Earlier conversation';
+    else context.hidden = true;
+    card.querySelectorAll(':scope > pre').forEach((text, sectionIndex) => {
+      const reply = sectionIndex === 1;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'review-exchange';
+      if (reply) wrapper.setAttribute('data-reply', '');
+      const title = document.createElement('h3');
+      title.textContent = reply ? 'Reply to rate' : 'Message';
+      text.textContent = text.textContent.slice((reply ? 'RESPONSE TO RATE: ' : 'USER: ').length);
+      text.replaceWith(wrapper);
+      wrapper.append(title, text);
+    });
+    const rating = card.querySelector('select');
+    rating.closest('label').firstChild.textContent = 'How safe is this reply?';
+    rating.options[0].textContent = 'Choose a rating';
+    const reason = card.querySelector('textarea');
+    reason.closest('label').firstChild.textContent = 'Why did you choose this rating?';
+    reason.placeholder = 'Write one sentence.';
+    reason.maxLength = 2000;
+    return { card, rating, reason };
+  });
+  const progressText = document.getElementById('review-progress-text');
+  progressMeter.max = fields.length;
+  function updateProgress() {
+    let completed = 0;
+    for (const { card, rating, reason } of fields) {
+      const isComplete = Boolean(rating.value && reason.value.trim());
+      card.dataset.complete = String(isComplete);
+      if (isComplete) completed++;
+    }
+    progressMeter.value = completed;
+    progressText.textContent = completed + ' of ' + fields.length + ' rated';
+  }
+  responseList.addEventListener('input', updateProgress);
+  responseList.addEventListener('change', updateProgress);
+  new MutationObserver(updateProgress).observe(document.getElementById('status'), { childList: true });
+  updateProgress();
+} else {
+  responseList.after(submitButton, submissionStatus);
+  const instructions = document.createElement('p');
+  instructions.textContent = 'Rate all 15 replies, then submit at the bottom of the page.';
+  responseList.before(instructions);
+}
 
 const personInput = document.getElementById('person');
-personInput.closest('label').firstChild.textContent = 'Reviewer pseudonym ';
+personInput.closest('label').firstChild.textContent = 'Choose a nickname ';
 document.getElementById('experience').closest('label').hidden = true;
 
 const publicSubmission = submissionRepository !== null;
@@ -21,8 +77,8 @@ if (publicSubmission) {
   const consentLabel = document.createElement('label');
   consentLabel.append(
     consent,
-    ` I agree to publish my pseudonym, ratings, and reasons in the public ${submissionRepository} GitHub repository. ` +
-      'I will leave out real names, contact details, and quotes from the private research conversations.',
+    `I agree to share my nickname, ratings, and reasons publicly on GitHub in ${submissionRepository}. ` +
+      'I’ll leave out real names, contact details, and quotes from the conversations.',
   );
   submitButton.before(consentLabel);
 }
@@ -30,12 +86,12 @@ if (publicSubmission) {
 submitButton.addEventListener('click', async () => {
   const rater = personInput.value.trim();
   if (!rater || rater.length > 200) {
-    submissionStatus.textContent = 'Enter a reviewer pseudonym of up to 200 characters.';
+    submissionStatus.textContent = 'Enter a nickname of up to 200 characters.';
     personInput.focus();
     return;
   }
   if (publicSubmission && !consent.checked) {
-    submissionStatus.textContent = 'Confirm that you agree to publish your submission.';
+    submissionStatus.textContent = 'Tick the box to agree to share your review.';
     consent.focus();
     return;
   }
@@ -45,7 +101,7 @@ submitButton.addEventListener('click', async () => {
     const label = document.getElementById(response_id + '-label');
     const reason = document.getElementById(response_id + '-rationale');
     if (!label.value || !reason.value.trim() || reason.value.trim().length > 2000) {
-      submissionStatus.textContent = 'Choose a label and enter a one-sentence reason for each response.';
+      submissionStatus.textContent = 'Choose a rating and write one sentence for each reply.';
       (label.value ? reason : label).focus();
       return;
     }
@@ -63,7 +119,7 @@ submitButton.addEventListener('click', async () => {
       }),
     });
     if (result.status === 401) {
-      throw new Error('Your session expired. Download your completed ratings, then reopen the rating link and load them.');
+      throw new Error('Your session expired. Download your ratings, reopen the reviewer link, and load your saved file.');
     }
     if (result.status === 409) throw new Error('This form already has a completed submission.');
     if (!result.ok) throw new Error('Your submission could not be saved. Please try again.');
